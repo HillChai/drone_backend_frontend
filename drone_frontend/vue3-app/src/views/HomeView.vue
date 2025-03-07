@@ -17,13 +17,12 @@
         </el-table-column>
         <el-table-column label="操作" width="100">
           <template #default="{ row }">
-            <el-button type="success" @click="trainDataset(row.id)">训练</el-button>
+            <el-button type="success" @click="trainDataset(row.name)">训练</el-button>
           </template>
         </el-table-column>
       </el-table>
       <p v-else>暂无数据</p>
 
-      <!-- ✅ 添加分页 -->
       <el-pagination
           v-if="totalDatasets > 0"
           background
@@ -45,9 +44,6 @@
       <el-table v-if="algorithms.length" :data="algorithms" border>
         <el-table-column prop="id" label="编号" width="80" />
         <el-table-column prop="name" label="算法名称" />
-        <el-table-column prop="parameters" label="训练数据集" />
-        <el-table-column prop="parameters" label="分类准确率" />
-        <el-table-column prop="parameters" label="单步推理用时" />
         <el-table-column label="创建时间">
           <template #default="{ row }">
             {{ formatDate(row.created_at) }}
@@ -55,13 +51,12 @@
         </el-table-column>
         <el-table-column label="操作" width="100">
           <template #default="{ row }">
-            <el-button type="success" @click="applyAlgorithm(row.id)">应用</el-button>
+            <el-button type="success" @click="applyAlgorithm(row.name)">应用</el-button>
           </template>
         </el-table-column>
       </el-table>
       <p v-else>暂无算法数据</p>
 
-      <!-- ✅ 添加分页 -->
       <el-pagination
           v-if="totalAlgorithms > 0"
           background
@@ -77,12 +72,15 @@
 
 <script>
 import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { getDatasets } from "@/api/dataset";
 import { getAlgorithms } from "@/api/algorithm";
 import dayjs from "dayjs";
 
 export default {
   setup() {
+    const router = useRouter();
+
     const datasets = ref([]);
     const algorithms = ref([]);
     const searchDataset = ref("");
@@ -101,11 +99,9 @@ export default {
     const fetchDatasets = async () => {
       try {
         const response = await getDatasets(datasetPage.value, datasetPageSize.value);
-        console.log("获取数据集:", response.data);  // 🐞 调试
         datasets.value = response.data.items || [];
         totalDatasets.value = response.data.total || 0;
       } catch (error) {
-        console.error("获取数据集失败:", error);
         datasets.value = [];
       }
     };
@@ -114,40 +110,34 @@ export default {
     const fetchAlgorithms = async () => {
       try {
         const response = await getAlgorithms(algorithmPage.value, algorithmPageSize.value);
-        console.log("获取算法:", response.data);  // 🐞 调试
         algorithms.value = response.data.items || [];
         totalAlgorithms.value = response.data.total || 0;
       } catch (error) {
-        console.error("获取算法失败:", error);
         algorithms.value = [];
       }
     };
 
-    // 训练数据集
-    const trainDataset = (id) => {
-      console.log(`开始训练数据集: ${id}`);
-      alert(`训练数据集 ${id} 已开始`);
+    // 训练数据集（跳转到选择页面）
+    const trainDataset = (datasetName) => {
+      router.push({ path: "/confirm", query: { dataset_name: datasetName } });
     };
 
-    // 应用算法
-    const applyAlgorithm = (id) => {
-      console.log(`应用算法: ${id}`);
-      alert(`算法 ${id} 已开始应用`);
+    // 应用算法（跳转到选择页面）
+    const applyAlgorithm = (algorithmName) => {
+      router.push({ path: "/confirm", query: { algorithm_name: algorithmName } });
     };
 
-    // 处理数据集分页
+    // 处理分页
     const handleDatasetPageChange = (page) => {
       datasetPage.value = page;
       fetchDatasets();
     };
-
-    // 处理算法分页
     const handleAlgorithmPageChange = (page) => {
       algorithmPage.value = page;
       fetchAlgorithms();
     };
 
-    // ✅ 格式化日期
+    // 格式化日期
     const formatDate = (date) => {
       return date ? dayjs(date).format("YYYY-MM-DD HH:mm:ss") : "无日期";
     };
@@ -179,4 +169,3 @@ export default {
   },
 };
 </script>
-

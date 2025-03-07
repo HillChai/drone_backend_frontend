@@ -4,6 +4,7 @@ import DatasetView from '../views/DatasetView.vue';
 import AlgorithmView from '../views/AlgorithmView.vue';
 import HistoryView from '../views/HistoryView.vue';
 import EditAlgorithmView from "@/views/EditAlgorithmView.vue";
+import ConfirmTrainOrTest from "@/views/ConfirmTrainOrTest.vue";
 
 const routes = [
     { path: '/', redirect: '/home' },  // 默认跳转到主页
@@ -11,7 +12,8 @@ const routes = [
     { path: '/edit-algorithm', name: "EditAlgorithmView", component: EditAlgorithmView },
     { path: '/dataset', component: DatasetView },
     { path: '/algorithm', component: AlgorithmView },
-    { path: '/history', component: HistoryView }
+    { path: '/history', component: HistoryView },
+    { path: '/confirm', component: ConfirmTrainOrTest },
 ];
 
 const router = createRouter({
