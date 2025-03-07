@@ -18,7 +18,7 @@
         </el-table-column>
         <el-table-column label="操作" width="100">
           <template #default="{ row }">
-            <el-button type="danger" @click="deleteAlgorithm(row.id)">删除</el-button>
+            <el-button type="primary" @click="editAlgorithm(row)">编辑</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -40,10 +40,12 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import dayjs from "dayjs";
-import { getAlgorithms, deleteAlgorithm } from "@/api/algorithm";
+import { getAlgorithms } from "@/api/algorithm";
+import { useRouter } from "vue-router";
 
 const algorithms = ref([]);
 const searchName = ref("");
+const router = useRouter();
 
 // 分页参数
 const algorithmPage = ref(1);
@@ -69,6 +71,18 @@ const handleAlgorithmPageChange = (page) => {
 
 const formatDate = (date) => {
   return date ? dayjs(date).format("YYYY-MM-DD HH:mm:ss") : "无日期";
+};
+
+// **编辑算法**
+const editAlgorithm = (algorithm) => {
+  router.push({
+    name: "EditAlgorithmView", // 确保路由配置中有这个 name
+    query: {
+      id: algorithm.id,
+      name: algorithm.name,
+      file_path: algorithm.file_path
+    }
+  });
 };
 
 onMounted(fetchAlgorithms);

@@ -37,10 +37,25 @@ def delete_algorithm(db: Session, algorithm_id: int):
         return True
     return False
 
+def update_algorithm(db: Session, algorithm_id: int, name: str, file_url: str):
+    """ 更新算法 """
+    algo = db.query(Algorithm).filter(Algorithm.id == algorithm_id).first()
+    if algo:
+        algo.name = name
+        algo.file_path = file_url
+        db.commit()
+        db.refresh(algo)
+        return algo
+    return None
+
 def save_algorithm_to_db(db: Session, name: str, file_url: str):
-    """存储算法信息到数据库"""
-    algorithm = Algorithm(name=name, file_path=file_url)
-    db.add(algorithm)
+    """ 存入数据库 """
+    new_algorithm = Algorithm(name=name, file_path=file_url)
+    db.add(new_algorithm)
     db.commit()
-    db.refresh(algorithm)
-    return algorithm.id
+    db.refresh(new_algorithm)
+    return new_algorithm.id
+
+def get_algorithm_by_name(db: Session, name: str):
+    """ 根据算法名称获取算法 """
+    return db.query(Algorithm).filter(Algorithm.name == name).first()

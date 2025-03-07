@@ -8,9 +8,9 @@
       <!-- 导航栏 -->
       <div class="tabs">
         <router-link to="/home" class="tab" :class="{ active: $route.path === '/home' }">主页</router-link>
-        <router-link to="/create" class="tab" :class="{ active: $route.path === '/create' }">新建算法</router-link>
         <router-link to="/dataset" class="tab" :class="{ active: $route.path === '/dataset' }">数据集管理</router-link>
-        <router-link to="/algorithm" class="tab" :class="{ active: $route.path === '/algorithm' }">算法管理</router-link>
+        <router-link to="/algorithm" class="tab" :class="{ active: $route.path === '/algorithm' }">模型管理</router-link>
+<!--        <router-link to="/edit-algorithm" class="tab" :class="{ active: $route.path === '/edit-algorithm' }">模型代码修改</router-link>-->
         <router-link to="/history" class="tab" :class="{ active: $route.path === '/history' }">历史记录</router-link>
       </div>
     </div>
