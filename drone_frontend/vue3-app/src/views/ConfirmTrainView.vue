@@ -284,12 +284,6 @@ const goBack = () => {
   padding-right: 20px; /* 让图表不靠边 */
 }
 
-/* 让环形进度条紧凑一些 */
-.el-progress {
-  width: 120px !important;
-  height: 120px !important;
-}
-
 /* 百分比数字 */
 .number-flip {
   font-size: 22px;
