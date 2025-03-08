@@ -119,12 +119,12 @@ export default {
 
     // 训练数据集（跳转到选择页面）
     const trainDataset = (datasetName) => {
-      router.push({ path: "/confirm", query: { dataset_name: datasetName } });
+      router.push({ path: "/confirmTrain", query: { dataset_name: datasetName } });
     };
 
     // 应用算法（跳转到选择页面）
     const applyAlgorithm = (algorithmName) => {
-      router.push({ path: "/confirm", query: { algorithm_name: algorithmName } });
+      router.push({ path: "/confirmTest", query: { algorithm_name: algorithmName } });
     };
 
     // 处理分页

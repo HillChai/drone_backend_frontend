@@ -59,7 +59,7 @@
 .system-name {
   font-size: 18px;
   font-weight: bold;
-  color: #333;
+  color: #ffffff;
 }
 
 /* 导航栏 Tabs */
@@ -71,7 +71,7 @@
 
 .tab {
   text-decoration: none;
-  color: black;
+  color: #ffffff;
   font-size: 16px;
   padding: 10px 0;
   position: relative;
@@ -100,7 +100,6 @@
 .login-icon {
   width: 40px;
   height: 40px;
-  background-color: #007bff;
   border-radius: 50%;
   display: flex;
   justify-content: center;

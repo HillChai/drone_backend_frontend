@@ -4,7 +4,8 @@ import DatasetView from '../views/DatasetView.vue';
 import AlgorithmView from '../views/AlgorithmView.vue';
 import HistoryView from '../views/HistoryView.vue';
 import EditAlgorithmView from "@/views/EditAlgorithmView.vue";
-import ConfirmTrainOrTest from "@/views/ConfirmTrainOrTest.vue";
+import ConfirmTrainView from "@/views/ConfirmTrainView.vue";
+import ConfirmTestView from "@/views/ConfirmTestView.vue";
 
 const routes = [
     { path: '/', redirect: '/home' },  // 默认跳转到主页
@@ -13,7 +14,8 @@ const routes = [
     { path: '/dataset', component: DatasetView },
     { path: '/algorithm', component: AlgorithmView },
     { path: '/history', component: HistoryView },
-    { path: '/confirm', component: ConfirmTrainOrTest },
+    { path: '/confirmTrain', component: ConfirmTrainView },
+    { path: '/confirmTest', component: ConfirmTestView },
 ];
 
 const router = createRouter({

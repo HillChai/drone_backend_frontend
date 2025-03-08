@@ -1,8 +1,7 @@
 <template>
-  <div class="confirm-container">
+  <div class="confirm-container dark-theme">
     <div class="selection-row">
-      <h2 v-if="datasetName">训练模式</h2>
-      <h2 v-else-if="algorithmName">应用模式</h2>
+      <h2>应用模式</h2>
 
       <!-- 数据集名称 -->
       <div v-if="datasetName" class="selection-item">
@@ -173,13 +172,13 @@ const goBack = () => {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 20px;
+  gap: 10px;
   margin-top: 20px;
 }
 
 .chart {
-  width: 45%;
-  height: 300px;
+  width: 30%;
+  height: 250px;
   border: 1px solid #ccc;
   border-radius: 5px;
 }
@@ -244,5 +243,10 @@ const goBack = () => {
 .btn:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+}
+
+.dark-theme {
+  background-color: #1e1e2f;
+  color: white;
 }
 </style>
