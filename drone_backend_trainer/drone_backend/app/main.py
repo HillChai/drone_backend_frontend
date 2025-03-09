@@ -107,17 +107,51 @@ def start_training():
     except Exception as e:
         return {"error": str(e)}
 
+# @app.post("/run_training_script")
+# async def run_training_script():
+#     try:
+#         container = client.containers.get(CONTAINER_NAME)
+#         # ✅ 让日志写入 /dev/stdout，使 `docker logs` 可见
+#         command = "python3 /CardRF/Recommend/MyTrain.py"
+#         exec_result = container.exec_run(
+#             ["sh", "-c", command],
+#             stream=True
+#         )
+#         return StreamingResponse(exec_result.output, media_type="text/event-stream")
+#     except Exception as e:
+#         return {"error": str(e)}
+
+import re
+
 @app.post("/run_training_script")
 async def run_training_script():
     try:
         container = client.containers.get(CONTAINER_NAME)
-        # ✅ 让日志写入 /dev/stdout，使 `docker logs` 可见
         command = "python3 /CardRF/Recommend/MyTrain.py"
+        
         exec_result = container.exec_run(
             ["sh", "-c", command],
             stream=True
         )
-        return StreamingResponse(exec_result.output, media_type="text/event-stream")
+
+        def filter_logs():
+            """
+            过滤 loss 和 accuracy 相关的信息，并发送给前端
+            """
+            loss_pattern = re.compile(r"loss:\s*([\d\.]+)", re.IGNORECASE)
+            acc_pattern = re.compile(r"accuracy:\s*([\d\.]+)", re.IGNORECASE)
+
+            for line in exec_result.output:
+                decoded_line = line.decode("utf-8").strip()
+                
+                loss_match = loss_pattern.search(decoded_line)
+                acc_match = acc_pattern.search(decoded_line)
+
+                if loss_match or acc_match:
+                    yield decoded_line + "\n"  # 只发送匹配的内容
+
+        return StreamingResponse(filter_logs(), media_type="text/event-stream")
+
     except Exception as e:
         return {"error": str(e)}
 

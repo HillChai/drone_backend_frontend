@@ -1,115 +1,245 @@
 <template>
-  <div>
-    <el-card>
-      <h2>历史记录</h2>
+  <div class="confirm-container dark-theme">
+    <div class="selection-row">
+      <h2>训练模式</h2>
 
-      <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-        <el-input v-model="searchName" placeholder="输入描述" clearable />
-        <el-button type="primary">搜索</el-button>
+      <!-- 数据集名称 -->
+      <div class="selection-item">
+        <input v-if="datasetName" type="text" v-model="datasetName" class="input-box" disabled />
+        <select v-else v-model="selectedDataset" class="input-box">
+          <option v-for="dataset in datasetOptions" :key="dataset.id" :value="dataset">
+            {{ dataset.name }}
+          </option>
+        </select>
       </div>
 
-      <el-table v-if="histories.length" :data="histories" border style="width: 100%">
-        <el-table-column prop="id" label="ID" width="80" />
-        
-        <!-- 状态栏（改为 el-tag） -->
-        <el-table-column label="状态" width="120">
-          <template #default="{ row }">
-            <el-tag :type="getStatusTag(row.status)">
-              {{ row.status }}
-            </el-tag>
-          </template>
-        </el-table-column>
+      <!-- 算法名称 -->
+      <div class="selection-item">
+        <input v-if="algorithmName" type="text" v-model="algorithmName" class="input-box" disabled />
+        <select v-else v-model="selectedAlgorithm" class="input-box">
+          <option v-for="algorithm in algorithmOptions" :key="algorithm.id" :value="algorithm">
+            {{ algorithm.name }}
+          </option>
+        </select>
+      </div>
 
-        <!-- 算法名称 -->
-        <el-table-column prop="algorithm_name" label="算法名称" />
+      <!-- 按钮区域 -->
+      <div class="button-group">
+        <button @click="submitSelection" class="btn submit" :disabled="!isReady">开始</button>
+        <button @click="stopTraining" class="btn">停止</button>
+      </div>
+    </div>
 
-        <!-- 训练模式时显示数据集 -->
-        <el-table-column v-if="row.is_training" prop="dataset_name" label="数据集名称" />
+    <div class="chart-container">
+      <!-- 资源监控 -->
+      <div class="left-column">
+        <div class="progress-item">
+          <p>CPU 使用率</p>
+          <el-progress type="circle" :percentage="cpuUsage" status="exception"></el-progress>
+        </div>
+        <div class="progress-item">
+          <p>GPU 使用率</p>
+          <el-progress type="circle" :percentage="gpuUsage" status="exception"></el-progress>
+        </div>
+        <div class="progress-item">
+          <p>内存使用率</p>
+          <el-progress type="circle" :percentage="memoryUsage" status="success"></el-progress>
+        </div>
+      </div>
 
-        <!-- 推理结果路径 -->
-        <el-table-column prop="results_path" label="推理结果路径" show-overflow-tooltip />
-
-        <!-- 创建时间 -->
-        <el-table-column label="创建时间">
-          <template #default="{ row }">
-            {{ formatDate(row.created_at) }}
-          </template>
-        </el-table-column>
-
-        <!-- 完成时间 -->
-        <el-table-column label="完成时间">
-          <template #default="{ row }">
-            {{ formatDate(row.completed_at) }}
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <p v-else>暂无历史数据</p>
-
-      <el-pagination
-          v-if="totalHistories > 0"
-          background
-          layout="prev, pager, next"
-          :total="totalHistories"
-          :current-page="historyPage"
-          :page-size="historyPageSize"
-          @current-change="handleHistoryPageChange"
-      />
-    </el-card>
+      <!-- 训练进度图表 -->
+      <div class="right-column">
+        <div ref="accuracyChart" class="chart"></div>
+        <div ref="lossChart" class="chart"></div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import dayjs from "dayjs";
-import { getHistory } from "@/api/history";
-import { getAlgorithms } from "@/api/algorithm";
+import { ref, onMounted, computed } from "vue";
+import * as echarts from "echarts";
+import { useRoute, useRouter } from "vue-router";
 import { getDatasets } from "@/api/dataset";
+import { getAlgorithms } from "@/api/algorithm";
+import { startTrainingStream } from "@/api/training";
 
-const histories = ref([]);
-const algorithms = ref([]);
-const datasets = ref([]);
+const route = useRoute();
+const router = useRouter();
 
-const historyPage = ref(1);
-const historyPageSize = ref(10);
-const totalHistories = ref(0);
-const searchName = ref("");
-const fetchHistories = async () => {
+const datasetName = ref(route.query.dataset_name || "");
+const algorithmName = ref(route.query.algorithm_name || "");
+const datasetOptions = ref([]);
+const algorithmOptions = ref([]);
+const selectedDataset = ref("");
+const selectedAlgorithm = ref("");
+const isReady = computed(() => datasetName.value || selectedDataset.value || algorithmName.value || selectedAlgorithm.value);
+
+// 训练相关数据
+const trainingLoss = ref([]);
+const trainingAccuracy = ref([]);
+
+const cpuUsage = ref(90);
+const gpuUsage = ref(95);
+const memoryUsage = ref(30);
+
+// ECharts 图表
+const accuracyChart = ref(null);
+const lossChart = ref(null);
+let lossChartInstance = null;
+let accuracyChartInstance = null;
+
+// 初始化数据集和算法选项
+onMounted(async () => {
   try {
-    const response = await getHistory();
-    histories.value = response.data.items || [];
-    totalHistories.value = response.data.total || 0;
-
-    // 获取所有算法信息
-    const algorithmRes = await getAlgorithms();
-    algorithms.value = algorithmRes.data.items || [];
-
-    // 获取所有数据集信息
     const datasetRes = await getDatasets();
-    datasets.value = datasetRes.data.items || [];
+    datasetOptions.value = datasetRes.data.items || [];
 
-    // 匹配算法名称 & 数据集名称
-    histories.value.forEach((history) => {
-      history.algorithm_name = algorithms.value.find(a => a.id === history.algorithm_id)?.name || "未知算法";
-      history.dataset_name = datasets.value.find(d => d.id === history.dataset_id)?.name || "无数据集";
+    const algorithmRes = await getAlgorithms();
+    algorithmOptions.value = algorithmRes.data.items || [];
+  } catch (error) {
+    console.error("❌ 获取数据失败:", error);
+  }
+
+  // 初始化图表
+  initCharts();
+});
+
+// 提交选择，启动训练
+const submitSelection = () => {
+  if (!datasetName.value && !selectedDataset.value) {
+    alert("请选择数据集！");
+    return;
+  }
+  if (!algorithmName.value && !selectedAlgorithm.value) {
+    alert("请选择算法！");
+    return;
+  }
+
+  const finalDataset = datasetName.value || selectedDataset.value;
+  const finalAlgorithm = algorithmName.value || selectedAlgorithm.value;
+
+  console.log("✅ 训练开始：", finalDataset.name, finalAlgorithm.name);
+
+  // 清空历史数据
+  trainingLoss.value = [];
+  trainingAccuracy.value = [];
+  updateTrainingCharts();
+
+  startTrainingStream((text) => {
+    const lossMatch = text.match(/loss:\s*([\d\.]+)/i);
+    const accMatch = text.match(/accuracy:\s*([\d\.]+)/i);
+
+    if (lossMatch) trainingLoss.value.push(parseFloat(lossMatch[1]));
+    if (accMatch) trainingAccuracy.value.push(parseFloat(accMatch[1]));
+
+    updateTrainingCharts();
+  });
+};
+
+// 初始化 ECharts
+const initCharts = () => {
+  lossChartInstance = echarts.init(lossChart.value);
+  accuracyChartInstance = echarts.init(accuracyChart.value);
+
+  const baseOption = (title, unit) => ({
+    title: { text: title, left: "center", textStyle: { color: "#fff" } },
+    tooltip: { trigger: "axis" },
+    xAxis: { type: "category", data: [] },
+    yAxis: { type: "value", axisLabel: { formatter: `{value} ${unit}` } },
+    series: [{ name: title, type: "line", data: [] }],
+  });
+
+  lossChartInstance.setOption(baseOption("Training Loss", ""));
+  accuracyChartInstance.setOption(baseOption("Training Accuracy", "%"));
+};
+
+// 更新 ECharts 图表
+const updateTrainingCharts = () => {
+  const xData = trainingLoss.value.map((_, idx) => `Step ${idx + 1}`);
+
+  if (lossChartInstance && accuracyChartInstance) {
+    lossChartInstance.setOption({
+      xAxis: { data: xData },
+      series: [{ data: trainingLoss.value }],
     });
 
-  } catch (error) {
-    console.error("获取历史记录失败:", error);
+    accuracyChartInstance.setOption({
+      xAxis: { data: xData },
+      series: [{ data: trainingAccuracy.value }],
+    });
   }
 };
 
-// **状态颜色**
-const getStatusTag = (status) => {
-  return status === "completed" ? "success"
-       : status === "failed" ? "danger"
-       : "warning";
+// 停止训练（可以扩展为向后端发送停止请求）
+const stopTraining = () => {
+  alert("训练已停止（需要后端实现停止接口）");
 };
 
-// **格式化日期**
-const formatDate = (date) => {
-  return date ? dayjs(date).format("YYYY-MM-DD HH:mm:ss") : "无日期";
+// 返回上一页
+const goBack = () => {
+  router.go(-1);
 };
-
-onMounted(fetchHistories);
 </script>
+
+<style scoped>
+.chart {
+  width: 100%;
+  height: 260px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.confirm-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.selection-row {
+  display: flex;
+  align-items: center;
+  gap: 50px;
+  width: 100%;
+  justify-content: center;
+}
+
+.button-group {
+  display: flex;
+  gap: 30px;
+}
+
+.btn {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.submit {
+  background-color: #28a745;
+}
+
+.chart-container {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 20%;
+  align-items: center;
+}
+
+.right-column {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  width: 75%;
+}
+</style>

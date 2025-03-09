@@ -25,8 +25,8 @@
 
       <!-- 按钮区域 -->
       <div class="button-group">
-        <button @click="submitSelection" class="btn submit" :disabled="!isReady || isTraining">开始</button>
-        <button @click="stopTrainingHandler" class="btn" :disabled="!isTraining">停止</button>
+        <button @click="submitSelection" class="btn submit" :disabled="!isReady">开始</button>
+        <button @click="goBack" class="btn">停止</button>
       </div>
     </div>
 
@@ -67,11 +67,12 @@ import * as echarts from "echarts";
 import { useRoute, useRouter } from "vue-router";
 import { getDatasets } from "@/api/dataset";
 import { getAlgorithms } from "@/api/algorithm";
-import { startContainer, startTrainingStream, stopTraining } from "@/api/training";
+import { startTrainingStream } from "@/api/training";
 
 const route = useRoute();
 const router = useRouter();
 
+// 训练 & 选择逻辑
 const datasetName = ref(route.query.dataset_name || "");
 const algorithmName = ref(route.query.algorithm_name || "");
 const datasetOptions = ref([]);
@@ -80,25 +81,22 @@ const selectedDataset = ref("");
 const selectedAlgorithm = ref("");
 const isReady = computed(() => datasetName.value || selectedDataset.value || algorithmName.value || selectedAlgorithm.value);
 
-// 状态变量
-const isTraining = ref(false);
-const containerId = ref("");
+// ECharts 组件
+const accuracyChart = ref(null);
+const lossChart = ref(null);
+const valAccuracyChart = ref(null);
+const valLossChart = ref(null);
+const cpuChart = ref(null);
+const gpuChart = ref(null);
+const memoryChart = ref(null);
+const appAccuracyChart = ref(null); // 应用模式下的准确率图表
 
-// 训练数据
-const trainingLoss = ref([]);
-const trainingAccuracy = ref([]);
-
+// 资源监控
 const cpuUsage = ref(90);
 const gpuUsage = ref(95);
 const memoryUsage = ref(30);
 
-// 图表实例
-const accuracyChart = ref(null);
-const lossChart = ref(null);
-let lossChartInstance = null;
-let accuracyChartInstance = null;
-
-// 初始化
+// 获取数据集 & 算法选项
 onMounted(async () => {
   try {
     const datasetRes = await getDatasets();
@@ -110,87 +108,60 @@ onMounted(async () => {
     console.error("❌ 获取数据失败:", error);
   }
 
+  // 初始化所有图表
   initCharts();
+  simulateTrainingProgress();
 });
 
-// 点击“开始”
-const submitSelection = async () => {
-  console.log("📤 开始训练 - 数据集：");
+// 提交选择
+// const submitSelection = () => {
+//   if (!datasetName.value && !selectedDataset.value) {
+//     alert("请选择数据集！");
+//     return;
+//   }
+//   if (!algorithmName.value && !selectedAlgorithm.value) {
+//     alert("请选择算法！");
+//     return;
+//   }
 
-  try {
-    // 第一步：启动容器
-    const startRes = await startContainer();
-    if (startRes.message?.includes("容器已经存在")) {
-      alert("⚠ 容器已存在，请先点击‘停止’");
-      return;
-    }
+//   const finalDataset = datasetName.value || selectedDataset.value;
+//   const finalAlgorithm = algorithmName.value || selectedAlgorithm.value;
 
-    containerId.value = startRes.container_id;
-    isTraining.value = true;
+//   console.log("✅ 提交选择：", finalDataset, finalAlgorithm);
+//   alert(`已选择 数据集：${finalDataset.name}，算法：${finalAlgorithm.name}`);
+// };
 
-    // 第二步：初始化图表数据
-    trainingLoss.value = [];
-    trainingAccuracy.value = [];
-    updateTrainingCharts();
-
-    // 第三步：开始训练脚本（日志流）
-    startTrainingStream((text) => {
-      const lossMatch = text.match(/loss:\s*([\d\.]+)/i);
-      const accMatch = text.match(/accuracy:\s*([\d\.]+)/i);
-
-      if (lossMatch) trainingLoss.value.push(parseFloat(lossMatch[1]));
-      if (accMatch) trainingAccuracy.value.push(parseFloat(accMatch[1]));
-
-      updateTrainingCharts();
-    });
-  } catch (err) {
-    console.error("❌ 启动训练失败:", err);
-    alert("训练启动失败：" + err.message);
-  }
-};
-
-// 点击“停止”
-const stopTrainingHandler = async () => {
-  try {
-    const stopRes = await stopTraining();
-    isTraining.value = false;
-    containerId.value = "";
-    alert(stopRes.message || "训练已停止");
-  } catch (err) {
-    alert("❌ 停止训练失败：" + err.message);
-  }
-};
-
-// 初始化图表
+// 初始化多个图表
 const initCharts = () => {
-  lossChartInstance = echarts.init(lossChart.value);
-  accuracyChartInstance = echarts.init(accuracyChart.value);
+  createChart(accuracyChart.value, "Training Accuracy", "%", []);
+  createChart(lossChart.value, "Training Loss", "", []);
+  createChart(valAccuracyChart.value, "Validation Accuracy", "%", []);
+  createChart(valLossChart.value, "Validation Loss", "", []);
+};
 
-  const baseOption = (title, unit) => ({
-    title: { text: title, left: "center", textStyle: { color: "#fff" } },
+// 创建图表
+const createChart = (element, title, unit, data) => {
+  const chart = echarts.init(element);
+  const option = {
+    title: {
+      text: title,
+      textStyle: {
+        color: '#ffffff', // 设置标题颜色为白色
+        fontSize: 16, // 适当调大字体
+        fontWeight: 'bold' // 加粗
+      },
+    },
+    textStyle: {
+      color: '#ffffff', // 设置标题颜色为白色
+      fontSize: 16, // 适当调大字体
+      fontWeight: 'bold' // 加粗
+    },
     tooltip: { trigger: "axis" },
     xAxis: { type: "category", data: [] },
     yAxis: { type: "value", axisLabel: { formatter: `{value} ${unit}` } },
-    series: [{ name: title, type: "line", data: [] }],
-  });
-
-  lossChartInstance.setOption(baseOption("Training Loss", ""));
-  accuracyChartInstance.setOption(baseOption("Training Accuracy", "%"));
-};
-
-// 更新图表数据
-const updateTrainingCharts = () => {
-  const xData = trainingLoss.value.map((_, i) => `${i + 1}`);
-
-  lossChartInstance?.setOption({
-    xAxis: { data: xData },
-    series: [{ data: trainingLoss.value }],
-  });
-
-  accuracyChartInstance?.setOption({
-    xAxis: { data: xData },
-    series: [{ data: trainingAccuracy.value }],
-  });
+    series: [{ name: title, type: "line", data }]
+  };
+  chart.setOption(option);
 };
 
 // 返回上一页
@@ -198,7 +169,6 @@ const goBack = () => {
   router.go(-1);
 };
 </script>
-
 
 <style scoped>
 /* 页面布局 */
