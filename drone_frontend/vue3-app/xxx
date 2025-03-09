@@ -1,0 +1,115 @@
+<template>
+  <div>
+    <el-card>
+      <h2>历史记录</h2>
+
+      <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <el-input v-model="searchName" placeholder="输入描述" clearable />
+        <el-button type="primary">搜索</el-button>
+      </div>
+
+      <el-table v-if="histories.length" :data="histories" border style="width: 100%">
+        <el-table-column prop="id" label="ID" width="80" />
+        
+        <!-- 状态栏（改为 el-tag） -->
+        <el-table-column label="状态" width="120">
+          <template #default="{ row }">
+            <el-tag :type="getStatusTag(row.status)">
+              {{ row.status }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
+        <!-- 算法名称 -->
+        <el-table-column prop="algorithm_name" label="算法名称" />
+
+        <!-- 训练模式时显示数据集 -->
+        <el-table-column v-if="row.is_training" prop="dataset_name" label="数据集名称" />
+
+        <!-- 推理结果路径 -->
+        <el-table-column prop="results_path" label="推理结果路径" show-overflow-tooltip />
+
+        <!-- 创建时间 -->
+        <el-table-column label="创建时间">
+          <template #default="{ row }">
+            {{ formatDate(row.created_at) }}
+          </template>
+        </el-table-column>
+
+        <!-- 完成时间 -->
+        <el-table-column label="完成时间">
+          <template #default="{ row }">
+            {{ formatDate(row.completed_at) }}
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <p v-else>暂无历史数据</p>
+
+      <el-pagination
+          v-if="totalHistories > 0"
+          background
+          layout="prev, pager, next"
+          :total="totalHistories"
+          :current-page="historyPage"
+          :page-size="historyPageSize"
+          @current-change="handleHistoryPageChange"
+      />
+    </el-card>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from "vue";
+import dayjs from "dayjs";
+import { getHistory } from "@/api/history";
+import { getAlgorithms } from "@/api/algorithm";
+import { getDatasets } from "@/api/dataset";
+
+const histories = ref([]);
+const algorithms = ref([]);
+const datasets = ref([]);
+
+const historyPage = ref(1);
+const historyPageSize = ref(10);
+const totalHistories = ref(0);
+const searchName = ref("");
+const fetchHistories = async () => {
+  try {
+    const response = await getHistory();
+    histories.value = response.data.items || [];
+    totalHistories.value = response.data.total || 0;
+
+    // 获取所有算法信息
+    const algorithmRes = await getAlgorithms();
+    algorithms.value = algorithmRes.data.items || [];
+
+    // 获取所有数据集信息
+    const datasetRes = await getDatasets();
+    datasets.value = datasetRes.data.items || [];
+
+    // 匹配算法名称 & 数据集名称
+    histories.value.forEach((history) => {
+      history.algorithm_name = algorithms.value.find(a => a.id === history.algorithm_id)?.name || "未知算法";
+      history.dataset_name = datasets.value.find(d => d.id === history.dataset_id)?.name || "无数据集";
+    });
+
+  } catch (error) {
+    console.error("获取历史记录失败:", error);
+  }
+};
+
+// **状态颜色**
+const getStatusTag = (status) => {
+  return status === "completed" ? "success"
+       : status === "failed" ? "danger"
+       : "warning";
+};
+
+// **格式化日期**
+const formatDate = (date) => {
+  return date ? dayjs(date).format("YYYY-MM-DD HH:mm:ss") : "无日期";
+};
+
+onMounted(fetchHistories);
+</script>

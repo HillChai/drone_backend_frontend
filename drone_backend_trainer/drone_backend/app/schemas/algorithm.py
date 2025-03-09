@@ -12,6 +12,7 @@ class AlgorithmCreate(AlgorithmBase):
 
 class AlgorithmResponse(AlgorithmBase):
     id: int
+    name: str
     created_at: datetime
 
     class Config:

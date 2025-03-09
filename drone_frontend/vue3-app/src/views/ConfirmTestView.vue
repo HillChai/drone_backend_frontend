@@ -49,8 +49,9 @@
             ref="tableRef"
             @scroll.native="loadMore"
         >
-          <el-table-column prop="timestamp" label="推理完成时间" width="180"></el-table-column>
-          <el-table-column prop="category" label="判断结果" width="150"></el-table-column>
+          <el-table-column prop="timestamp" label="开始时间" width="180"></el-table-column>
+          <el-table-column prop="timestamp" label="结束时间" width="180"></el-table-column>
+          <el-table-column prop="category" label="分类结果" width="150"></el-table-column>
           <el-table-column label="是否正确" width="150">
             <template #default="{ row }">
               <el-select v-model="row.correctness" placeholder="选择">

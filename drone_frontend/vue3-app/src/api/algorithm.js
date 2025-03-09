@@ -91,3 +91,6 @@ export const listAlgorithmFiles = async (filePrefix) => {
     }
 };
 
+export const getAlgorithmById = async (algorithm_id) => {
+    return await api.get(`/algorithms/${algorithm_id}`);
+};

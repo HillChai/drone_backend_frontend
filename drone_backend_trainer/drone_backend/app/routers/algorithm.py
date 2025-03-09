@@ -64,13 +64,6 @@ def list_algorithm_files(prefix: str = Query(..., description="文件名前缀")
 
     return {"files": files}
 
-@router.get("/{algorithm_id:int}", response_model=AlgorithmResponse)
-def read_algorithm(algorithm_id: int, db: Session = Depends(get_db)):
-    """根据ID获取算法"""
-    algorithm = get_algorithm(db, algorithm_id)
-    if not algorithm:
-        raise HTTPException(status_code=404, detail="Algorithm not found")
-    return algorithm
 
 @router.delete("/{algorithm_id}")
 def delete_algorithm(algorithm_id: int, db: Session = Depends(get_db)):
@@ -126,6 +119,14 @@ def update_algorithm(algorithm_id: int, name: str = Form(...), file_path: str = 
         raise HTTPException(status_code=404, detail="Algorithm not found")
     return {"message": "算法更新成功", "algorithm": AlgorithmResponse.model_validate(updated_algorithm)}
 
+
+@router.get("/{algorithm_id}", response_model=AlgorithmResponse)
+def read_algorithm(algorithm_id: int, db: Session = Depends(get_db)):
+    """根据ID获取算法"""
+    algorithm = get_algorithm(db, algorithm_id)
+    if not algorithm:
+        raise HTTPException(status_code=404, detail="Algorithm not found")
+    return algorithm
 
 
 

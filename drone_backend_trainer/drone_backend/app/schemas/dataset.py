@@ -12,6 +12,7 @@ class DatasetCreate(DatasetBase):
 
 class DatasetResponse(DatasetBase):
     id: int
+    name: str
     created_at: datetime
 
     class Config:

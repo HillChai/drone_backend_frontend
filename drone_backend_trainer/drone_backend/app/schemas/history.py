@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 class HistoryBase(BaseModel):
-    dataset_id: int
+    dataset_id: Optional[int] = None
     algorithm_id: int
     status: str = "pending"
     results_path: Optional[str] = None  # 训练/推理结果存储路径

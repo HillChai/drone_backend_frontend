@@ -31,7 +31,7 @@ class History(Base):
     __tablename__ = "history"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    dataset_id = Column(Integer, ForeignKey("datasets.id", ondelete="CASCADE"))
+    dataset_id = Column(Integer, ForeignKey("datasets.id", ondelete="CASCADE"), nullable=True)
     algorithm_id = Column(Integer, ForeignKey("algorithms.id", ondelete="CASCADE"))
     status = Column(String, nullable=False, default="pending")  # 训练/推理状态
     results_path = Column(String, nullable=True)  # 训练或推理结果存储路径（如果有文件）

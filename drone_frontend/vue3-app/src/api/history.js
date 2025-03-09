@@ -1,7 +1,11 @@
 import api from "./index";
 
-// 获取历史记录
-export const getHistory = () => api.get("/history");
+// 获取分页历史记录
+export const getHistory = async (page, limit = 10) => {
+    return await api.get("/history", {
+        params: { page, limit }  // ✅ Axios 自动处理 URL
+    });
+};
 
 // 更新历史状态
 export const updateHistoryStatus = (id, status) => api.put(`/history/${id}/status`, null, { params: { new_status: status } });

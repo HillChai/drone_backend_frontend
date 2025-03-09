@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from database import get_db
 from cruds import (
@@ -7,6 +7,7 @@ from cruds import (
 )
 from schemas import HistoryCreate, HistoryResponse
 from typing import List
+from models import History
 
 router = APIRouter(
     prefix="/history",
@@ -18,12 +19,22 @@ def create_history(history: HistoryCreate, db: Session = Depends(get_db)):
     """创建历史记录"""
     return create_history(db, history)
 
-@router.get("/", response_model=List[HistoryResponse])
-def read_histories(db: Session = Depends(get_db)):
+@router.get("/", response_model=dict)
+def read_histories(
+    db: Session = Depends(get_db),
+    page: int = Query(1, alias="page"),
+    limit: int = Query(10, alias="limit"),
+    ):
+    """获取分页算法"""
+    total = db.query(History).count()
+    items = db.query(History).offset((page - 1) * limit).limit(limit).all()
     """获取所有历史记录"""
-    return get_histories(db)
+    return {
+        "total": total,
+        "items": [HistoryResponse.model_validate(history) for history in items]
+    }
 
-@router.get("/{history_id}", response_model=HistoryResponse)
+@router.get("/{history_id:int}", response_model=HistoryResponse)
 def read_history(history_id: int, db: Session = Depends(get_db)):
     """根据ID获取历史记录"""
     history = get_history(db, history_id)

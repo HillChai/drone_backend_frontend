@@ -33,15 +33,6 @@ def get_datasets(
         "items": [DatasetResponse.model_validate(dataset) for dataset in items]
     }
 
-
-@router.get("/{dataset_id}", response_model=DatasetResponse)
-def read_dataset(dataset_id: int, db: Session = Depends(get_db)):
-    """根据ID获取数据集"""
-    dataset = get_dataset(db, dataset_id)
-    if not dataset:
-        raise HTTPException(status_code=404, detail="Dataset not found")
-    return dataset
-
 @router.delete("/{dataset_id}")
 def delete_dataset(dataset_id: int, db: Session = Depends(get_db)):
     """删除数据集"""
@@ -68,3 +59,12 @@ def update_dataset_description(
     db.refresh(dataset)
     
     return {"message": "Description updated successfully"}
+
+
+@router.get("/{dataset_id}", response_model=DatasetResponse)
+def read_dataset(dataset_id: int, db: Session = Depends(get_db)):
+    """根据ID获取数据集"""
+    dataset = get_dataset(db, dataset_id)
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    return dataset

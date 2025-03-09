@@ -12,3 +12,7 @@ export const deleteDataset = async (id) => {
 export const updateDatasetDescription = async (id, description) => {
     return await api.put(`/datasets/${id}/description`, { description });
 };
+
+export const getDatasetById = async (dataset_id) => {
+    return await api.get(`/datasets/${dataset_id}`);
+};
