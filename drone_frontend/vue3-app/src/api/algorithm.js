@@ -2,7 +2,7 @@ import api from "./index";
 import axios from "axios";
 
 // 获取算法列表
-export const getAlgorithms = async (page = 1, limit = 10) => {
+export const getAlgorithms = async (page = 1, limit = 20) => {
     return await api.get(`/algorithms?page=${page}&limit=${limit}`);
 };
 

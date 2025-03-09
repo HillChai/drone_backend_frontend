@@ -18,7 +18,7 @@
         <input v-if="algorithmName" type="text" v-model="algorithmName" class="input-box" disabled />
         <select v-else v-model="selectedAlgorithm" class="input-box">
           <option v-for="algorithm in algorithmOptions" :key="algorithm.id" :value="algorithm">
-            {{ algorithm }}
+            {{ algorithm.name }}
           </option>
         </select>
       </div>
@@ -35,17 +35,17 @@
       <div class="left-column">
         <div class=" progress-item ">
           <p>CPU 使用率</p>
-          <el-progress type="circle" :percentage="cpuUsage" status="success"></el-progress>
+          <el-progress type="circle" :percentage="cpuUsage" status="exception"></el-progress>
           <div class="number-flip">{{ cpuUsage }}%</div>
         </div>
         <div class="progress-item">
           <p>GPU 使用率</p>
-          <el-progress type="circle" :percentage="gpuUsage" status="warning"></el-progress>
+          <el-progress type="circle" :percentage="gpuUsage" status="exception"></el-progress>
           <div class="number-flip">{{ gpuUsage }}%</div>
         </div>
         <div class="progress-item">
           <p>内存使用率</p>
-          <el-progress type="circle" :percentage="memoryUsage" status="exception"></el-progress>
+          <el-progress type="circle" :percentage="memoryUsage" status="success"></el-progress>
           <div class="number-flip">{{ memoryUsage }}%</div>
         </div>
       </div>
@@ -89,6 +89,11 @@ const cpuChart = ref(null);
 const gpuChart = ref(null);
 const memoryChart = ref(null);
 const appAccuracyChart = ref(null); // 应用模式下的准确率图表
+
+// 资源监控
+const cpuUsage = ref(90);
+const gpuUsage = ref(95);
+const memoryUsage = ref(30);
 
 // 获取数据集 & 算法选项
 onMounted(async () => {
