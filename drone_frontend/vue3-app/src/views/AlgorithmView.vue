@@ -4,7 +4,8 @@
       <h2>算法管理</h2>
       <div style="display: flex; gap: 10px; margin-bottom: 10px;">
         <el-input v-model="searchName" placeholder="输入算法名称" clearable />
-        <el-button type="primary" @click="fetchAlgorithms">搜索</el-button>
+        <el-button type="primary">搜索</el-button>
+        <el-button type="success" @click="editAlgorithm">创建</el-button>
       </div>
 
       <el-table v-if="algorithms.length" :data="algorithms" border style="width: 100%">

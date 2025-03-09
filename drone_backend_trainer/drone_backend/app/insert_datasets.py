@@ -10,22 +10,22 @@ dataset_entries = [
     {
         "name": "dronerf_vits",
         "description": "适用于 VITs 训练",
-        "file_path": "minio://drone-system/datasets/dronerf_vits/"
+        "file_path": "/home/ccc/drone_system_material/datasets/dronerf_vits/"
     },
     {
         "name": "cardrf_vits",
         "description": "适用于 VITs 推理测试",
-        "file_path": "minio://drone-system/datasets/cardrf_vits/"
+        "file_path": "/home/ccc/drone_system_material/datasets/cardrf_vits/"
     },
     {
         "name": "dronerf_machine_learning",
         "description": "适用于 ML 训练",
-        "file_path": "minio://drone-system/datasets/dronerf_machine_learning/"
+        "file_path": "/home/ccc/drone_system_material/datasets/dronerf_machine_learning/"
     },
     {
         "name": "cardrf_machine_learning",
         "description": "适用于 ML 推理测试",
-        "file_path": "minio://drone-system/datasets/cardrf_machine_learning/"
+        "file_path": "/home/ccc/drone_system_material/datasets/cardrf_machine_learning/"
     }
 ]
 

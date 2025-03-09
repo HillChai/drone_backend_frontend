@@ -1,10 +1,10 @@
-FROM crpi-9994gc03c1aikjap.cn-hangzhou.personal.cr.aliyuncs.com/radio_fingerprinting/ml_dronerf:latest
+FROM ecg_after_requirement:latest
 
 WORKDIR /app
 
 # 安装必要的 Python 依赖
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 复制 API 服务器代码
 COPY server.py /app/

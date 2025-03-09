@@ -24,11 +24,12 @@ export const createAlgorithm = async (data) => {
 export const deleteAlgorithm = (id) => api.delete(`/algorithms/${id}`);
 
 // **获取算法代码内容**
-export const getAlgorithmContent = async (filePath) => {
+export const getAlgorithmContent = async (file_path) => {
     try {
-        console.log("📡 请求算法代码:", filePath);
+        console.log("📡 请求算法代码:", file_path);
+
         const res = await api.get("/algorithms/get-algorithm-code/", {
-            params: { file_path: filePath }
+            params: { file_path: file_path }  // ✅ 确保前端传递的是文件名，而非路径
         });
 
         console.log("🌍 API 响应:", res.data);
@@ -46,27 +47,41 @@ export const getAlgorithmContent = async (filePath) => {
 };
 
 
-export const saveAlgorithm = async (name, file) => {
+
+export const saveAlgorithm = async (name, file, file_path) => {
     try {
+        if (!file_path) {
+            console.error("❌ file_path 为空，检查传递参数！");
+            return;
+        }
+
         const formData = new FormData();
-        formData.append("name", name);   // 确保字段名和后端匹配
-        formData.append("file", file);   // 确保是一个 `File` 对象
+        formData.append("name", name);  // 确保字段名与后端匹配
+        formData.append("file", file);  // 确保 `file` 是 `File` 对象
+        formData.append("file_path", file_path);  // 传递完整路径
+
+        console.log("📤 发送算法数据:", name, file, file_path);
 
         const res = await api.post("/algorithms/save-algorithm/", formData, {
             headers: { "Content-Type": "multipart/form-data" }
         });
 
-        return res.data;
+        console.log("✅ 保存成功:", res.data);
+        return res.data;  // {message, id, file_path}
     } catch (error) {
-        console.error("保存算法失败:", error);
+        console.error("❌ 保存算法失败:", error.response?.data || error);
         throw error;
     }
 };
 
-export const listAlgorithmFiles = async (filePath) => {
+
+export const listAlgorithmFiles = async (filePrefix) => {
     try {
-        console.log("🔍 请求算法文件列表，前缀:", filePath);
-        const res = await api.get("/algorithms/list-algorithm-files/", { params: { prefix: filePath } });
+        console.log("🔍 请求算法文件列表，前缀:", filePrefix);
+
+        const res = await api.get("/algorithms/list-algorithm-files/", {
+            params: { prefix: filePrefix }  // ✅ 确保参数名与后端匹配
+        });
 
         console.log("✅ API 返回的算法文件:", res.data);
         return res.data;

@@ -36,18 +36,18 @@ def read_root():
 training_status = {"epoch": 0, "accuracy": 0.0, "loss": 0.0}
 
 async def stream_sse():
-    url = "http://drone_trainer:8001/train_progress"  # 训练容器的 SSE 接口
+    """ 监听 `drone_trainer` 训练日志 """
+    url = "http://drone_trainer:8001/train_progress"
     try:
         with requests.get(url, stream=True) as response:
             for line in response.iter_lines():
                 if line:
                     data = line.decode("utf-8").replace("data: ", "")
-                    print("收到训练数据:", data)
+                    print("📩 收到训练数据:", data)
                     global training_status
                     training_status = eval(data)  # 存入全局变量
-                    yield f"data: {data}\n\n"
     except Exception as e:
-        print(f"SSE 连接失败: {e}")
+        print(f"❌ SSE 连接失败: {e}")
 
 @app.get("/subscribe")
 async def subscribe():
@@ -59,8 +59,8 @@ async def get_status():
     return training_status
 
 
-# 使用 Windows 远程 API 连接 Docker
-DOCKER_API_URL = "tcp://host.docker.internal:2375"
+# 使用 Ubuntu 远程 API 连接 Docker
+DOCKER_API_URL = "unix://var/run/docker.sock"
 
 try:
     client = docker.DockerClient(base_url=DOCKER_API_URL)
@@ -69,12 +69,14 @@ except Exception as e:
     print(f"❌ 连接 Docker 失败: {e}")
 
 # 容器信息
-CONTAINER_NAME = "ml_dronerf"
-IMAGE_NAME = "crpi-9994gc03c1aikjap.cn-hangzhou.personal.cr.aliyuncs.com/radio_fingerprinting/ml_dronerf:latest"
-MOUNT_ALGORITHMS = "/drone_system_material/algorithms"
-MOUNT_DATASETS = "/drone_system_material/datasets/dronerf_machine_learning"
-HOST_ALGORITHMS = "D:\\drone_system_material\\algorithms\\dronerf_machine_learning"
-HOST_DATASETS = "D:\\drone_system_material\\datasets\\dronerf_machine_learning"
+CONTAINER_NAME = "cardrf"
+IMAGE_NAME = "cardrf:latest"
+MOUNT_ALGORITHMS = "/CardRF"
+MOUNT_DATASETS = "/CardRFDataset"
+MOUNT_RESULTS = "/SaveFolders"
+HOST_ALGORITHMS = "/home/ccc/npz/MultiViTOnRFDatasets/DeepLearning/CardRF"
+HOST_DATASETS = "/mnt/ssd/CardRFDataset"
+HOST_RESULTS = "/home/ccc/npz/DeepLearning/CardRF"
 
 @app.post("/start_training")
 def start_training():
@@ -96,6 +98,7 @@ def start_training():
             volumes={
                 HOST_ALGORITHMS: {'bind': MOUNT_ALGORITHMS, 'mode': 'rw'},
                 HOST_DATASETS: {'bind': MOUNT_DATASETS, 'mode': 'rw'},
+                HOST_RESULTS: {'bind': MOUNT_RESULTS, 'mode': 'rw'},
             },
             command="/bin/bash",
         )
@@ -105,14 +108,19 @@ def start_training():
         return {"error": str(e)}
 
 @app.post("/run_training_script")
-def run_training_script():
-    """ 在运行的容器内执行训练命令 """
+async def run_training_script():
     try:
         container = client.containers.get(CONTAINER_NAME)
-        exec_result = container.exec_run("python3 /drone_system_material/algorithms/catboost/best_catboost.py")
-        return {"message": "训练任务已启动", "stdout": exec_result.output.decode("utf-8")}
+        # ✅ 让日志写入 /dev/stdout，使 `docker logs` 可见
+        command = "python3 /CardRF/Recommend/MyTrain.py"
+        exec_result = container.exec_run(
+            ["sh", "-c", command],
+            stream=True
+        )
+        return StreamingResponse(exec_result.output, media_type="text/event-stream")
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.post("/stop_training")
 def stop_training():

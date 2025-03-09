@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=DatasetResponse)
-def create_dataset_api(dataset: DatasetCreate, db: Session = Depends(get_db)):
+def create_dataset(dataset: DatasetCreate, db: Session = Depends(get_db)):
     """创建数据集"""
     return create_dataset(db, dataset)
 
@@ -35,7 +35,7 @@ def get_datasets(
 
 
 @router.get("/{dataset_id}", response_model=DatasetResponse)
-def read_dataset_api(dataset_id: int, db: Session = Depends(get_db)):
+def read_dataset(dataset_id: int, db: Session = Depends(get_db)):
     """根据ID获取数据集"""
     dataset = get_dataset(db, dataset_id)
     if not dataset:
@@ -43,7 +43,7 @@ def read_dataset_api(dataset_id: int, db: Session = Depends(get_db)):
     return dataset
 
 @router.delete("/{dataset_id}")
-def delete_dataset_api(dataset_id: int, db: Session = Depends(get_db)):
+def delete_dataset(dataset_id: int, db: Session = Depends(get_db)):
     """删除数据集"""
     if not delete_dataset(db, dataset_id):
         raise HTTPException(status_code=404, detail="Dataset not found")

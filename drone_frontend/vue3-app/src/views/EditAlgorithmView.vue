@@ -9,17 +9,17 @@
       <select v-if="algorithmFiles.length > 0" v-model="selectedFile" @change="loadCode" class="select-box">
         <option disabled value="">请选择算法文件</option>
         <option v-for="file in algorithmFiles" :key="file" :value="file">
-          {{ file.split('/').pop() }}
+          {{ file }}
         </option>
       </select>
 
       <!-- 编辑代码文件名称 -->
-      <label class="input-label">代码文件名称：</label>
-      <input type="text" v-model="fileName" class="input-box" />
+      <label class="input-label">算法名称：</label>
+      <input type="text" v-model="fileName" class="input-box"/>
 
-      <!-- MinIO 存储路径 -->
-      <label class="input-label">MinIO 存储路径：</label>
-      <input type="text" v-model="minioPath" class="input-box" />
+      <!-- file 存储路径 -->
+      <label class="input-label">本地存储路径：</label>
+      <input type="text" v-model="filePath" class="input-box wrap-text"/>
 
       <!-- 按钮区域 -->
       <div class="button-group">
@@ -44,12 +44,10 @@ import {listAlgorithmFiles, getAlgorithmContent, saveAlgorithm} from "@/api/algo
 const route = useRoute();
 const router = useRouter();
 const algorithmId = ref(route.query.id || "");
-const filePath = ref(route.query.file_path || "");
-const directoryPath = ref(filePath.value.replace(/\/[^/]+$/, ""));
-const algorithmFiles = ref([]);
-const selectedFile = ref("");
-const fileName = ref("");  // 代码文件名称
-const minioPath = ref(""); // MinIO 存储路径
+const fileName = ref(route.query.name || "");  // 代码文件名称
+const filePath = ref(route.query.file_path || ""); // 目录路径
+const algorithmFiles = ref([]);   // 存储所有算法文件
+const selectedFile = ref("");     // 用户选择的文件
 const editorContainer = ref(null);
 let editorInstance = null;
 
@@ -67,7 +65,8 @@ onMounted(async () => {
   }
 
   try {
-    const res = await listAlgorithmFiles(directoryPath.value);
+    console.info("filePath.value: ", filePath.value)
+    const res = await listAlgorithmFiles(filePath.value);
     algorithmFiles.value = res.files || [];
 
     if (algorithmFiles.value.length > 0) {
@@ -83,11 +82,11 @@ onMounted(async () => {
 const loadCode = async () => {
   if (!selectedFile.value) return;
   try {
-    const res = await getAlgorithmContent(selectedFile.value);
+    const fileFullPath = `${filePath.value}/${selectedFile.value}`;
+    const res = await getAlgorithmContent(fileFullPath);
     if (res && res.code) {
       editorInstance.setValue(res.code);
-      fileName.value = selectedFile.value.split('/').pop() || ""; // 设定文件名称
-      minioPath.value = selectedFile.value; // 设定 MinIO 存储路径
+      fileName.value = selectedFile.value; // 设定文件名称
     }
   } catch (error) {
     console.error("❌ 代码加载失败:", error);
@@ -102,7 +101,7 @@ watch(selectedFile, async (newFile) => {
 
 const saveCode = async () => {
   if (!fileName.value) {
-    alert("请输入代码文件名称！");
+    // alert("请选择一个文件！");
     return;
   }
 
@@ -111,20 +110,19 @@ const saveCode = async () => {
   const file = new File([blob], fileName.value, { type: "text/plain" });
 
   try {
+    const fileFullPath = `${filePath.value}/${fileName.value}`; // 保存的完整路径
     console.log("📡 正在上传代码...");
-    const res = await saveAlgorithm(fileName.value, file);
 
-    if (res && res.file_url) {
+    const res = await saveAlgorithm(fileName.value, file, fileFullPath);
+    if (res && res.file_path) {
       console.log("✅ 代码上传成功:", res);
-      minioPath.value = res.file_url;  // ✅ 更新文件路径
-      selectedFile.value = res.file_url;
-      alert("代码已成功保存！");
+      // alert("代码已成功保存！");
     } else {
-      throw new Error("后端未返回文件 URL");
+      throw new Error("后端未返回文件路径");
     }
   } catch (error) {
     console.error("❌ 代码保存失败:", error);
-    alert("代码保存失败，请重试！");
+    // alert("代码保存失败，请重试！");
   }
 };
 
@@ -152,8 +150,8 @@ const goBack = () => {
 /* 右侧代码编辑器 */
 .code-editor {
   flex: 1; /* 让代码编辑器占据剩余空间 */
-  //min-width: 1000px; /* 设置一个最小宽度 */
-  max-width: 1100px; /* 可选，防止编辑器过宽 */
+  /* min-width: 1000px; 设置一个最小宽度 */
+  /* max-width: 1100px; 可选，防止编辑器过宽 */
   display: flex;
   justify-content: center;
 }
@@ -221,5 +219,13 @@ const goBack = () => {
 .btn:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+}
+
+/* 让文本自动换行 */
+.wrap-text {
+  word-break: break-all;
+  overflow-wrap: break-word;
+  white-space: normal;
+  overflow: auto
 }
 </style>
