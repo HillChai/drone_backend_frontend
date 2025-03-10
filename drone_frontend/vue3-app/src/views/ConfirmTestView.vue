@@ -30,12 +30,12 @@
         </div>
         <div class="progress-item">
           <p>GPU 使用率</p>
-          <el-progress type="circle" :percentage="gpuUsage" status="exception"></el-progress>
+          <el-progress type="circle" :percentage="gpuUsage" status="success"></el-progress>
           <div class="number-flip">{{ gpuUsage }}%</div>
         </div>
         <div class="progress-item">
           <p>内存使用率</p>
-          <el-progress type="circle" :percentage="memoryUsage" status="warning"></el-progress>
+          <el-progress type="circle" :percentage="memoryUsage" status="success"></el-progress>
           <div class="number-flip">{{ memoryUsage }}%</div>
         </div>
       </div>
@@ -49,8 +49,8 @@
             ref="tableRef"
             @scroll.native="loadMore"
         >
-          <el-table-column prop="timestamp" label="开始时间" width="180"></el-table-column>
-          <el-table-column prop="timestamp" label="结束时间" width="180"></el-table-column>
+          <el-table-column prop="startTime" label="开始时间" width="180"></el-table-column>
+          <el-table-column prop="endTime" label="结束时间" width="180"></el-table-column>
           <el-table-column prop="category" label="分类结果" width="150"></el-table-column>
           <el-table-column label="是否正确" width="150">
             <template #default="{ row }">
@@ -86,9 +86,9 @@ const selectedAlgorithm = ref("");
 const isReady = computed(() => algorithmName.value || selectedAlgorithm.value);
 
 // 资源监控
-const cpuUsage = ref(30);
-const gpuUsage = ref(90);
-const memoryUsage = ref(60);
+const cpuUsage = ref(5);
+const gpuUsage = ref(20);
+const memoryUsage = ref(10);
 
 // 推理记录列表（模拟 100 条数据）
 const allRecords = ref([]);
@@ -105,19 +105,29 @@ const generateRecords = () => {
 
   for (let i = 0; i < 15; i++) {
     // 生成最近一个月内的随机日期
-    const randomTimestamp = new Date(
+    const startTimestamp = new Date(
       oneMonthAgo.getTime() + Math.random() * (now.getTime() - oneMonthAgo.getTime())
     );
 
-    // 格式化时间
-    const year = randomTimestamp.getFullYear();
-    const month = String(randomTimestamp.getMonth() + 1).padStart(2, "0");
-    const day = String(randomTimestamp.getDate()).padStart(2, "0");
-    const hour = String(randomTimestamp.getHours()).padStart(2, "0");
-    const minute = String(randomTimestamp.getMinutes()).padStart(2, "0");
+    // 生成 100ms - 500ms 的随机间隔
+    const duration = Math.floor(Math.random() * 400) + 100;
+    const endTimestamp = new Date(startTimestamp.getTime() + duration);
+
+    // 格式化时间函数
+    const format = (date) => {
+      const Y = date.getFullYear();
+      const M = String(date.getMonth() + 1).padStart(2, "0");
+      const D = String(date.getDate()).padStart(2, "0");
+      const h = String(date.getHours()).padStart(2, "0");
+      const m = String(date.getMinutes()).padStart(2, "0");
+      const s = String(date.getSeconds()).padStart(2, "0");
+      const ms = String(date.getMilliseconds()).padStart(3, "0");
+      return `${Y}-${M}-${D} ${h}:${m}:${s}.${ms}`;
+    };
 
     allRecords.value.push({
-      timestamp: `${year}-${month}-${day} ${hour}:${minute}:00`,
+      startTime: format(startTimestamp),
+      endTime: format(endTimestamp),
       category: String(Math.floor(Math.random() * 21) + 1), // 生成 1-21 之间的随机类别
       correctness: "",
       comment: "",
@@ -125,7 +135,7 @@ const generateRecords = () => {
   }
 
   // 按时间降序排序（最近的时间最靠前）
-  allRecords.value.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  allRecords.value.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
 };
 
 // 监听滚动加载

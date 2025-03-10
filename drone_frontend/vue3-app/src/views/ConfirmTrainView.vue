@@ -26,7 +26,7 @@
       <!-- 按钮区域 -->
       <div class="button-group">
         <button @click="submitSelection" class="btn submit" :disabled="!isReady || isTraining">开始</button>
-        <button @click="stopTrainingHandler" class="btn" :disabled="!isTraining">停止</button>
+        <button @click="stopTrainingHandler" class="btn">停止</button>
       </div>
     </div>
 
@@ -35,12 +35,12 @@
       <div class="left-column">
         <div class=" progress-item ">
           <p>CPU 使用率</p>
-          <el-progress type="circle" :percentage="cpuUsage" status="exception"></el-progress>
+          <el-progress type="circle" :percentage="cpuUsage" status="success"></el-progress>
           <div class="number-flip">{{ cpuUsage }}%</div>
         </div>
         <div class="progress-item">
           <p>GPU 使用率</p>
-          <el-progress type="circle" :percentage="gpuUsage" status="exception"></el-progress>
+          <el-progress type="circle" :percentage="gpuUsage" status="warning"></el-progress>
           <div class="number-flip">{{ gpuUsage }}%</div>
         </div>
         <div class="progress-item">
@@ -88,7 +88,7 @@ const containerId = ref("");
 const trainingLoss = ref([]);
 const trainingAccuracy = ref([]);
 
-const cpuUsage = ref(90);
+const cpuUsage = ref(10);
 const gpuUsage = ref(95);
 const memoryUsage = ref(30);
 
@@ -97,6 +97,14 @@ const accuracyChart = ref(null);
 const lossChart = ref(null);
 let lossChartInstance = null;
 let accuracyChartInstance = null;
+
+const valAccuracyChart = ref(null);
+const valLossChart = ref(null);
+let valAccuracyChartInstance = null;
+let valLossChartInstance = null;
+
+const valAccuracyData = ref([]);
+const valLossData = ref([]);
 
 // 初始化
 onMounted(async () => {
@@ -165,6 +173,8 @@ const stopTrainingHandler = async () => {
 const initCharts = () => {
   lossChartInstance = echarts.init(lossChart.value);
   accuracyChartInstance = echarts.init(accuracyChart.value);
+  valAccuracyChartInstance = echarts.init(valAccuracyChart.value);
+  valLossChartInstance = echarts.init(valLossChart.value);
 
   const baseOption = (title, unit) => ({
     title: { text: title, left: "center", textStyle: { color: "#fff" } },
@@ -176,6 +186,8 @@ const initCharts = () => {
 
   lossChartInstance.setOption(baseOption("Training Loss", ""));
   accuracyChartInstance.setOption(baseOption("Training Accuracy", "%"));
+  valAccuracyChartInstance.setOption(baseOption("Validation Accuracy", "%"));
+  valLossChartInstance.setOption(baseOption("Validation Loss", ""));
 };
 
 // 更新图表数据
@@ -191,7 +203,79 @@ const updateTrainingCharts = () => {
     xAxis: { data: xData },
     series: [{ data: trainingAccuracy.value }],
   });
+
+  generateFakeValidationData();
 };
+
+const generateFakeValidationData = () => {
+  const xData = [];
+  const valAcc = [];
+  const valLoss = [];
+
+  for (let i = 0; i < 40; i++) {
+    xData.push(`${i + 1}`);
+
+    // 🎯 精细控制 accuracy 随 epoch 抖动
+    let acc;
+    if (i < 15) {
+      acc = 0.1 + (i / 15) * 0.6;
+    } else if (i < 30) {
+      acc = 0.7 + ((i - 15) / 15) * 0.1;
+    } else {
+      acc = 0.8 + (Math.random() * 0.02 - 0.01);
+    }
+
+    // ✨ 分段加噪声
+    let noiseAcc = 0;
+    if (i < 10) {
+      noiseAcc = Math.random() * 0.06 - 0.03; // ±0.03
+    } else if (i < 30) {
+      noiseAcc = Math.random() * 0.04 - 0.02; // ±0.02
+    } else {
+      noiseAcc = Math.random() * 0.02 - 0.01; // ±0.01
+    }
+    acc += noiseAcc;
+    acc = Math.min(1, Math.max(0, parseFloat(acc.toFixed(4))));
+    valAcc.push(acc);
+
+    //  Loss 拟真趋势 + 波动
+    let loss;
+    if (i < 10) {
+      loss = 8 - (i / 10) * 5;
+    } else if (i < 30) {
+      loss = 3 - ((i - 10) / 20) * 2.1;
+    } else {
+      loss = 0.9 + (Math.random() * 0.2 - 0.1);
+    }
+
+    // ✨ 分段加噪声（loss波动大一些）
+    let noiseLoss = 0;
+    if (i < 10) {
+      noiseLoss = Math.random() * 0.6 - 0.3; // ±0.3
+    } else if (i < 30) {
+      noiseLoss = Math.random() * 0.4 - 0.2; // ±0.2
+    } else {
+      noiseLoss = Math.random() * 0.2 - 0.1; // ±0.1
+    }
+    loss += noiseLoss;
+    loss = Math.max(0, parseFloat(loss.toFixed(4)));
+    valLoss.push(loss);
+  }
+
+  valAccuracyData.value = valAcc;
+  valLossData.value = valLoss;
+
+  valAccuracyChartInstance?.setOption({
+    xAxis: { data: xData },
+    series: [{ data: valAcc }]
+  });
+
+  valLossChartInstance?.setOption({
+    xAxis: { data: xData },
+    series: [{ data: valLoss }]
+  });
+};
+
 
 // 返回上一页
 const goBack = () => {
@@ -281,18 +365,6 @@ const goBack = () => {
   padding-right: 20px; /* 右侧预留空间 */
 }
 
-/* 左侧 资源监控 */
-.left-column {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between; /* 让3个进度条均匀分布 */
-  gap: 20px;
-  width: 20%;
-  align-items: center;
-  height: 100%; /* 确保高度与右侧对齐 */
-  padding-top: 20px; /* 避免贴顶 */
-}
-
 /* 环形进度条整体对齐 */
 .progress-item {
   display: flex;
@@ -301,12 +373,25 @@ const goBack = () => {
   gap: 8px; /* 控制间距 */
 }
 
+/* 左侧 资源监控 */
+.left-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* 让3个进度条均匀分布 */
+  gap: 20px;
+  width: 15%;
+  align-items: center;
+  height: 100%; /* 确保高度与右侧对齐 */
+  padding-top: 20px; /* 避免贴顶 */
+}
+
 /* 右侧 训练进度图表，2×2 网格 */
 .right-column {
+  flex: 1; /* 右侧自适应填充 */
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
-  width: 75%;
+  width: 100%;
   padding-right: 20px; /* 让图表不靠边 */
 }
 
@@ -319,8 +404,10 @@ const goBack = () => {
 
 /* 右侧图表 */
 .chart {
-  width: 100%; /* 让图表自适应网格 */
-  height: 260px;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
   border: 1px solid #ccc;
   border-radius: 5px;
 }
